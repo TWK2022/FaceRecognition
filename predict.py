@@ -9,7 +9,7 @@ import albumentations
 # -------------------------------------------------------------------------------------------------------------------- #
 # 设置
 parser = argparse.ArgumentParser(description='insightface')
-parser.add_argument('--image_root', default='image_predict', type=str, help='|要预测的图片文件夹位置|')
+parser.add_argument('--image_path', default='image_predict', type=str, help='|要预测的图片文件夹位置|')
 parser.add_argument('--database_path', default='feature_database.csv', type=str, help='|特征数据库位置(.csv)|')
 parser.add_argument('--input_size', default=640, type=int, help='|模型输入图片大小|')
 parser.add_argument('--threshold', default=0.5, type=float, help='|概率大于阈值判断有此人|')
@@ -37,14 +37,14 @@ def predict_camera():
     model1.prepare(ctx_id=-1 if args.device == 'cpu' else 0, det_size=(args.input_size, args.input_size))  # 模型设置
     # # 加载模型2
     provider = 'CUDAExecutionProvider' if args.device.lower() in ['gpu', 'cuda'] else 'CPUExecutionProvider'
-    session = onnxruntime.InferenceSession(args.model_path, providers=[provider])
+    session = onnxruntime.InferenceSession('mask.onnx', providers=[provider])
     input_name = session.get_inputs()[0].name
     output_name = session.get_outputs()[0].name
     # 模型2输入图片的形状转换
     transform = albumentations.Compose([
         albumentations.LongestMaxSize(160),
         albumentations.PadIfNeeded(min_height=160, min_width=160,
-                                   border_mode=cv2.BORDER_CONSTANT, value=(0, 0, 0))])
+                                   border_mode=cv2.BORDER_CONSTANT, value=(127, 127, 127))])
     # 加载数据库
     df_database = pd.read_csv(args.database_path, dtype=np.float16 if args.float16 else np.float32)
     column = df_database.columns
@@ -70,18 +70,18 @@ def predict_camera():
                 face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)  # 转为RGB通道
                 face_image = transform(image=face_image)['image'].astype(np.float16)[np.newaxis]
                 # 用模型2预测
-                pred = session.run([output_name], {input_name: face_image}).item()
+                pred = session.run([output_name], {input_name: face_image})[0].item()
                 cover.append(pred)
             pred_feature = np.array(pred_feature, dtype=np.float16 if args.float16 else np.float32)
             result = np.dot(pred_feature, feature)  # 进行匹配
             for j in range(len(result)):  # 一张图片可能不只一个人脸
                 feature_argmax = np.argmax(result[j])
-                threshold = args.threshold - 0.2 * cover[j]
+                threshold = args.threshold - 0.2 * cover[j]  # 一般大面积遮挡时会下降0.2的概率
                 if result[j][feature_argmax] > threshold:
-                    name = column[feature_argmax] + '_{:.2f}_{:.2f}'.format(result[j][feature_argmax], cover[j])
+                    name = column[feature_argmax] + ':{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
                     color = (0, 255, 0)  # 绿色
                 else:
-                    name = 'None_{:.2f}_{:.2f}'.format(result[j][feature_argmax], cover[j])
+                    name = 'None:{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
                     color = (0, 0, 255)  # 红色
                 # 画人脸框
                 image = draw(image, pred_bbox[j], name, color)
