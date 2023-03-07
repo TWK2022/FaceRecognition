@@ -76,7 +76,7 @@ def predict_camera():
             result = np.dot(pred_feature, feature)  # 进行匹配
             for j in range(len(result)):  # 一张图片可能不只一个人脸
                 feature_argmax = np.argmax(result[j])
-                threshold = args.threshold - 0.2 * cover[j]  # 一般大面积遮挡时会下降0.2的概率
+                threshold = args.threshold - 0.3 * cover[j]  # 一般戴口罩时会下降0.3的概率
                 if result[j][feature_argmax] > threshold:
                     name = column[feature_argmax] + ':{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
                     color = (0, 255, 0)  # 绿色
