@@ -35,7 +35,7 @@ def predict_camera():
     # 加载模型1
     model1 = insightface.app.FaceAnalysis(name='buffalo_l')  # 加载模型，首次运行时会自动下载模型文件到用户下的.insightface文件夹中
     model1.prepare(ctx_id=-1 if args.device == 'cpu' else 0, det_size=(args.input_size, args.input_size))  # 模型设置
-    # # 加载模型2
+    # 加载模型2
     provider = 'CUDAExecutionProvider' if args.device.lower() in ['gpu', 'cuda'] else 'CPUExecutionProvider'
     session = onnxruntime.InferenceSession('mask.onnx', providers=[provider])
     input_name = session.get_inputs()[0].name
