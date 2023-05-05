@@ -1,0 +1,5 @@
+# 需要安装c++环境(可以直接安装一个Visual Studio，安装时只需选c++开发)
+# CPU版:pip install numpy pandas cmake opencv-python onnxruntime insightface -i https://pypi.tuna.tsinghua.edu.cn/simple
+# GPU版:pip install numpy pandas cmake opencv-python onnxruntime-gpu insightface -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 如果运行时提示缺少什么库，直接'pip install 库名 -i https://pypi.tuna.tsinghua.edu.cn/simple'
+# 遇到报错就网上搜，可能是版本问题或缺少库，不难解决
