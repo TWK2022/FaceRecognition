@@ -37,9 +37,9 @@ def predict_camera():
     model1.prepare(ctx_id=-1 if args.device == 'cpu' else 0, det_size=(args.input_size, args.input_size))  # 模型设置
     # 加载模型2
     provider = 'CUDAExecutionProvider' if args.device.lower() in ['gpu', 'cuda'] else 'CPUExecutionProvider'
-    session = onnxruntime.InferenceSession('mask.onnx', providers=[provider])
-    input_name = session.get_inputs()[0].name
-    output_name = session.get_outputs()[0].name
+    model2 = onnxruntime.InferenceSession('mask.onnx', providers=[provider])
+    input_name = model2.get_inputs()[0].name
+    output_name = model2.get_outputs()[0].name
     # 模型2输入图片的形状转换
     transform = albumentations.Compose([
         albumentations.LongestMaxSize(160),
@@ -70,7 +70,7 @@ def predict_camera():
                 face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)  # 转为RGB通道
                 face_image = transform(image=face_image)['image'].astype(np.float16)[np.newaxis]
                 # 用模型2预测
-                pred = session.run([output_name], {input_name: face_image})[0].item()
+                pred = model2.run([output_name], {input_name: face_image})[0].item()
                 cover.append(pred)
             pred_feature = np.array(pred_feature, dtype=np.float16 if args.float16 else np.float32)
             result = np.dot(pred_feature, feature)  # 进行匹配
