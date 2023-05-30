@@ -70,8 +70,8 @@ def predict_camera():
                 face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)  # 转为RGB通道
                 face_image = transform(image=face_image)['image'].astype(np.float16)[np.newaxis]
                 # 用模型2预测
-                pred = model2.run([output_name], {input_name: face_image})[0].item()
-                cover.append(pred)
+                pred2 = model2.run([output_name], {input_name: face_image})[0].item()
+                cover.append(pred2)
             pred_feature = np.array(pred_feature, dtype=np.float16 if args.float16 else np.float32)
             result = np.dot(pred_feature, feature)  # 进行匹配
             for j in range(len(result)):  # 一张图片可能不只一个人脸
