@@ -58,33 +58,36 @@ def predict_camera():
     while capture.isOpened():
         _, image = capture.read()  # 读取摄像头的一帧画面
         pred = model1.get(image)
-        if pred != []:
-            pred_feature = []  # 记录所有预测的人脸特征
-            pred_bbox = []  # 记录所有预测的人脸框
-            cover = []  # 记录所有预测的人脸遮挡概率
-            for j in range(len(pred)):  # 一张图片可能不只一个人脸
-                pred_feature.append(pred[j].normed_embedding)
-                bbox = pred[j].bbox
-                pred_bbox.append(bbox)
-                face_image = image[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
-                face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)  # 转为RGB通道
-                face_image = transform(image=face_image)['image'].astype(np.float16)[np.newaxis]
-                # 用模型2预测
-                pred_probability = model2.run([output_name], {input_name: face_image})[0].item()
-                cover.append(pred_probability)
-            pred_feature = np.array(pred_feature, dtype=np.float16 if args.float16 else np.float32)
-            result = np.dot(pred_feature, feature)  # 进行匹配
-            for j in range(len(result)):  # 一张图片可能不只一个人脸
-                feature_argmax = np.argmax(result[j])
-                threshold = args.threshold - 0.3 * cover[j]  # 一般戴口罩时会下降0.3的概率
-                if result[j][feature_argmax] > threshold:
-                    name = column[feature_argmax] + ':{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
-                    color = (0, 255, 0)  # 绿色
-                else:
-                    name = 'None:{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
-                    color = (0, 0, 255)  # 红色
-                # 画人脸框
-                image = draw(image, pred_bbox[j], name, color)
+        try:
+            if pred != []:
+                pred_feature = []  # 记录所有预测的人脸特征
+                pred_bbox = []  # 记录所有预测的人脸框
+                cover = []  # 记录所有预测的人脸遮挡概率
+                for j in range(len(pred)):  # 一张图片可能不只一个人脸
+                    pred_feature.append(pred[j].normed_embedding)
+                    bbox = pred[j].bbox
+                    pred_bbox.append(bbox)
+                    face_image = image[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
+                    face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)  # 转为RGB通道
+                    face_image = transform(image=face_image)['image'].astype(np.float16)[np.newaxis]
+                    # 用模型2预测
+                    pred_probability = model2.run([output_name], {input_name: face_image})[0].item()
+                    cover.append(pred_probability)
+                pred_feature = np.array(pred_feature, dtype=np.float16 if args.float16 else np.float32)
+                result = np.dot(pred_feature, feature)  # 进行匹配
+                for j in range(len(result)):  # 一张图片可能不只一个人脸
+                    feature_argmax = np.argmax(result[j])
+                    threshold = args.threshold - 0.3 * cover[j]  # 一般戴口罩时会下降0.3的概率
+                    if result[j][feature_argmax] > threshold:
+                        name = column[feature_argmax] + f':{result[j][feature_argmax]:.2f}_mask:{cover[j]:.2f}'
+                        color = (0, 255, 0)  # 绿色
+                    else:
+                        name = 'None:{:.2f}_mask:{:.2f}'.format(result[j][feature_argmax], cover[j])
+                        color = (0, 0, 255)  # 红色
+                    # 画人脸框
+                    image = draw(image, pred_bbox[j], name, color)
+        except:
+            pass
         cv2.imshow('predict', image)
         cv2.waitKey(max(args.camera_time, 1))
     cv2.destroyAllWindows()
